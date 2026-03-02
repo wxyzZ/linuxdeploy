@@ -4,7 +4,9 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.os.Bundle;
+import android.widget.EditText;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.preference.EditTextPreference;
 import androidx.preference.ListPreference;
 import androidx.preference.Preference;
@@ -50,10 +52,77 @@ public class PropertiesFragment extends PreferenceFragmentCompat implements
                     break;
                 default:
                     setPreferencesFromResource(R.xml.properties, rootKey);
+                    setupSuitePreferenceClickListener();
             }
         }
 
         initSummaries(getPreferenceScreen());
+    }
+
+    private void setupSuitePreferenceClickListener() {
+        ListPreference suite = findPreference("suite");
+        if (suite != null) {
+            suite.setOnPreferenceClickListener(preference -> {
+                showSuiteSelectionDialog((ListPreference) preference);
+                return true; // consume click, prevent default ListPreference dialog
+            });
+        }
+    }
+
+    private void showSuiteSelectionDialog(ListPreference suite) {
+        CharSequence[] entries = suite.getEntries();
+        CharSequence[] entryValues = suite.getEntryValues();
+        String currentValue = suite.getValue();
+
+        // Build items: predefined + "Custom / Manual input"
+        int predefinedCount = entries != null ? entries.length : 0;
+        CharSequence[] allEntries = new CharSequence[predefinedCount + 1];
+        CharSequence[] allEntryValues = new CharSequence[predefinedCount + 1];
+
+        if (predefinedCount > 0) {
+            System.arraycopy(entries, 0, allEntries, 0, predefinedCount);
+            System.arraycopy(entryValues, 0, allEntryValues, 0, predefinedCount);
+        }
+        allEntries[predefinedCount] = getString(R.string.suite_custom_input);
+        allEntryValues[predefinedCount] = "__custom__";
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.dialog_title_suite_preference)
+                .setSingleChoiceItems(allEntries, -1, (dialog, which) -> {
+                    dialog.dismiss();
+                    if (which < predefinedCount) {
+                        suite.setValue(allEntryValues[which].toString());
+                        setSummary(suite, false);
+                    } else {
+                        showSuiteCustomInputDialog(suite, currentValue);
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void showSuiteCustomInputDialog(ListPreference suite, String currentValue) {
+        EditText editText = new EditText(requireContext());
+        editText.setSingleLine(true);
+        editText.setHint("e.g. bookworm");
+        if (currentValue != null && currentValue.length() > 0) {
+            editText.setText(currentValue);
+            editText.setSelection(currentValue.length());
+        }
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.dialog_title_suite_custom)
+                .setMessage(R.string.dialog_message_suite_custom)
+                .setView(editText)
+                .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                    String customValue = editText.getText().toString().trim();
+                    if (customValue.length() > 0) {
+                        suite.setValue(customValue);
+                        setSummary(suite, false);
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
     }
 
     @Override
@@ -175,7 +244,9 @@ public class PropertiesFragment extends PreferenceFragmentCompat implements
 
         if (pref instanceof ListPreference) {
             ListPreference listPref = (ListPreference) pref;
-            pref.setSummary(listPref.getEntry());
+            CharSequence entry = listPref.getEntry();
+            // When value is custom (e.g. suite manual input), getEntry() is null, use getValue()
+            pref.setSummary(entry != null ? entry : listPref.getValue());
 
             if (listPref.getKey().equals("distrib")) {
                 ListPreference suite = findPreference("suite");
@@ -200,7 +271,8 @@ public class PropertiesFragment extends PreferenceFragmentCompat implements
                             suite.setValue(suiteStr);
                     }
                 }
-                suite.setSummary(suite.getEntry());
+                CharSequence suiteEntry = suite.getEntry();
+                suite.setSummary(suiteEntry != null ? suiteEntry : suite.getValue());
                 suite.setEnabled(true);
 
                 // architecture

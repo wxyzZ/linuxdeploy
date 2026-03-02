@@ -174,6 +174,9 @@
     <!-- SUITE -->
     <string name="title_suite_preference">Distribution suite</string>
     <string name="dialog_title_suite_preference">Distribution suite</string>
+    <string name="suite_custom_input">Custom / Manual input</string>
+    <string name="dialog_title_suite_custom">Enter suite version</string>
+    <string name="dialog_message_suite_custom">Enter the distribution suite version manually:</string>
     <!-- SOURCE_PATH -->
     <string name="title_source_path_preference">Source path</string>
     <string name="dialog_title_source_path_preference">Source path</string>
