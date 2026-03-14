@@ -31,10 +31,11 @@ class ParamUtils {
             String line;
             while ((line = br.readLine()) != null) {
                 if (!line.startsWith("#") && !line.isEmpty()) {
-                    String[] pair = line.split("=");
-                    String key = pair[0];
-                    String value = pair[1];
-                    map.put(key, value.replaceAll("\"", ""));
+                    String[] pair = line.split("=", 2);
+                    if (pair.length < 2) continue;
+                    String key = pair[0].trim();
+                    String value = pair[1].replaceAll("\"", "");
+                    map.put(key, value);
                 }
             }
         } catch (IOException e) {

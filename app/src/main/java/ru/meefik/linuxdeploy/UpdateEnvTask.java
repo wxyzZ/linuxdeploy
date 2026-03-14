@@ -36,8 +36,8 @@ public class UpdateEnvTask extends AsyncTask<String, Void, Boolean> {
     protected void onPostExecute(Boolean success) {
         Context context = contextWeakReference.get();
         if (context != null) {
-            if (dialog.isShowing()) dialog.dismiss();
-            if (!success) {
+            if (dialog != null && dialog.isShowing()) dialog.dismiss();
+            if (success == null || !success) {
                 Toast.makeText(context, R.string.toast_updating_env_error, Toast.LENGTH_SHORT).show();
             }
         }

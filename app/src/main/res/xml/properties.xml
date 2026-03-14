@@ -126,7 +126,7 @@
     <PreferenceCategory android:title="@string/init_preferences">
 
         <CheckBoxPreference
-            android:defaultValue="@string/is_init"
+            android:defaultValue="false"
             android:key="is_init"
             android:summary="@string/summary_is_init_preference"
             android:title="@string/title_is_init_preference" />
@@ -152,7 +152,7 @@
     <PreferenceCategory android:title="@string/mounts_preferences">
 
         <CheckBoxPreference
-            android:defaultValue="@string/is_mounts"
+            android:defaultValue="false"
             android:key="is_mounts"
             android:summary="@string/summary_is_mounts_preference"
             android:title="@string/title_is_mounts_preference" />
@@ -168,7 +168,7 @@
     <PreferenceCategory android:title="@string/ssh_preferences">
 
         <CheckBoxPreference
-            android:defaultValue="@string/is_ssh"
+            android:defaultValue="false"
             android:key="is_ssh"
             android:summary="@string/summary_is_ssh_preference"
             android:title="@string/title_is_ssh_preference" />
@@ -184,7 +184,7 @@
     <PreferenceCategory android:title="@string/pulse_preferences">
 
         <CheckBoxPreference
-            android:defaultValue="@string/is_pulse"
+            android:defaultValue="false"
             android:key="is_pulse"
             android:summary="@string/summary_is_pulse_preference"
             android:title="@string/title_is_pulse_preference" />
@@ -200,7 +200,7 @@
     <PreferenceCategory android:title="@string/gui_preferences">
 
         <CheckBoxPreference
-            android:defaultValue="@string/is_gui"
+            android:defaultValue="false"
             android:key="is_gui"
             android:summary="@string/summary_is_gui_preference"
             android:title="@string/title_is_gui_preference" />

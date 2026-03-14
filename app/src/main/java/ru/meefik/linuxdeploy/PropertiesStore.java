@@ -76,14 +76,14 @@ class PropertiesStore extends ParamUtils {
         if (value != null) {
             switch (key) {
                 case "mounts":
-                    if (!value.isEmpty()) set(c, "is_mounts", "true");
+                    set(c, "is_mounts", value.isEmpty() ? "false" : "true");
                     break;
                 case "include":
-                    List includes = Arrays.asList(value.split(" "));
-                    if (includes.contains("init")) set(c, "is_init", "true");
-                    if (includes.contains("extra/ssh")) set(c, "is_ssh", "true");
-                    if (includes.contains("extra/pulse")) set(c, "is_pulse", "true");
-                    if (includes.contains("graphics")) set(c, "is_gui", "true");
+                    List<String> includes = Arrays.asList(value.split(" "));
+                    set(c, "is_init",  String.valueOf(includes.contains("init")));
+                    set(c, "is_ssh",   String.valueOf(includes.contains("extra/ssh")));
+                    set(c, "is_pulse", String.valueOf(includes.contains("extra/pulse")));
+                    set(c, "is_gui",   String.valueOf(includes.contains("graphics")));
                     break;
             }
         }

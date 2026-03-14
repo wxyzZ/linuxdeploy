@@ -75,44 +75,54 @@ public class PropertiesFragment extends PreferenceFragmentCompat implements
     private static final String SUITE_VALID_PATTERN = "^[a-zA-Z0-9._\\-]+$";
 
     private void showSuiteSelectionDialog(ListPreference suite) {
-        CharSequence[] entries = suite.getEntries();
-        CharSequence[] entryValues = suite.getEntryValues();
         String currentValue = suite.getValue();
 
-        // Build items: predefined + "Custom / Manual input"
-        int predefinedCount = entries != null ? entries.length : 0;
-        CharSequence[] allEntries = new CharSequence[predefinedCount + 1];
-        CharSequence[] allEntryValues = new CharSequence[predefinedCount + 1];
-
-        if (predefinedCount > 0) {
-            System.arraycopy(entries, 0, allEntries, 0, predefinedCount);
-            System.arraycopy(entryValues, 0, allEntryValues, 0, predefinedCount);
+        // Always load original predefined entries from resource to avoid stale appended custom values
+        CharSequence[] predefinedValues = new CharSequence[0];
+        ListPreference distrib = findPreference("distrib");
+        if (distrib != null && distrib.getValue() != null) {
+            int suiteValuesId = PrefStore.getResourceId(getContext(),
+                    distrib.getValue() + "_suite_values", "array");
+            if (suiteValuesId > 0) {
+                predefinedValues = getContext().getResources().getTextArray(suiteValuesId);
+            }
         }
-        allEntries[predefinedCount] = getString(R.string.suite_custom_input);
-        allEntryValues[predefinedCount] = "__custom__";
+        int predefinedCount = predefinedValues.length;
 
-        int checkedItem = -1;
-        if (currentValue != null && currentValue.length() > 0) {
-            for (int i = 0; i < predefinedCount; i++) {
+        // "Custom / Manual input" is always FIRST
+        int totalCount = predefinedCount + 1;
+        CharSequence[] allEntries = new CharSequence[totalCount];
+        CharSequence[] allEntryValues = new CharSequence[totalCount];
+
+        allEntries[0] = getString(R.string.suite_custom_input);
+        allEntryValues[0] = "__custom__";
+        System.arraycopy(predefinedValues, 0, allEntries, 1, predefinedCount);
+        System.arraycopy(predefinedValues, 0, allEntryValues, 1, predefinedCount);
+
+        // Highlight current predefined item; if value is custom/not-found, highlight "Custom" (index 0)
+        int checkedItem = 0;
+        if (currentValue != null && !currentValue.isEmpty()) {
+            for (int i = 1; i < totalCount; i++) {
                 if (currentValue.equals(allEntryValues[i].toString())) {
                     checkedItem = i;
                     break;
                 }
             }
-            if (checkedItem < 0 && !currentValue.equals("__custom__")) {
-                checkedItem = predefinedCount;
-            }
         }
 
+        final CharSequence[] finalPredefinedValues = predefinedValues;
         new AlertDialog.Builder(requireContext())
                 .setTitle(R.string.dialog_title_suite_preference)
                 .setSingleChoiceItems(allEntries, checkedItem, (dialog, which) -> {
                     dialog.dismiss();
-                    if (which < predefinedCount) {
+                    if (which == 0) {
+                        showSuiteCustomInputDialog(suite, currentValue);
+                    } else {
+                        // Restore entries to clean predefined-only state
+                        suite.setEntries(finalPredefinedValues);
+                        suite.setEntryValues(finalPredefinedValues);
                         suite.setValue(allEntryValues[which].toString());
                         setSummary(suite, false);
-                    } else {
-                        showSuiteCustomInputDialog(suite, currentValue);
                     }
                 })
                 .setNegativeButton(android.R.string.cancel, null)
@@ -156,6 +166,7 @@ public class PropertiesFragment extends PreferenceFragmentCompat implements
                 }
                 suite.setValue(customValue);
                 setSummary(suite, false);
+                PrefStore.dumpProperties(requireContext());
                 dialog.dismiss();
             });
         });
@@ -187,16 +198,18 @@ public class PropertiesFragment extends PreferenceFragmentCompat implements
                 Intent intent = new Intent(getContext(), PropertiesActivity.class);
 
                 ListPreference graphics = findPreference("graphics");
-                switch (graphics.getValue()) {
-                    case "vnc":
-                        intent.putExtra("pref", 2);
-                        break;
-                    case "x11":
-                        intent.putExtra("pref", 3);
-                        break;
-                    case "fb":
-                        intent.putExtra("pref", 4);
-                        break;
+                if (graphics != null && graphics.getValue() != null) {
+                    switch (graphics.getValue()) {
+                        case "vnc":
+                            intent.putExtra("pref", 2);
+                            break;
+                        case "x11":
+                            intent.putExtra("pref", 3);
+                            break;
+                        case "fb":
+                            intent.putExtra("pref", 4);
+                            break;
+                    }
                 }
 
                 startActivity(intent);
@@ -206,13 +219,15 @@ public class PropertiesFragment extends PreferenceFragmentCompat implements
                 Intent intent = new Intent(getContext(), PropertiesActivity.class);
 
                 ListPreference init = findPreference("init");
-                switch (init.getValue()) {
-                    case "run-parts":
-                        intent.putExtra("pref", 5);
-                        break;
-                    case "sysv":
-                        intent.putExtra("pref", 6);
-                        break;
+                if (init != null && init.getValue() != null) {
+                    switch (init.getValue()) {
+                        case "run-parts":
+                            intent.putExtra("pref", 5);
+                            break;
+                        case "sysv":
+                            intent.putExtra("pref", 6);
+                            break;
+                    }
                 }
 
                 startActivity(intent);
@@ -255,29 +270,33 @@ public class PropertiesFragment extends PreferenceFragmentCompat implements
     }
 
     private void setSummary(Preference pref, boolean init) {
+        if (pref == null) return;
         if (pref instanceof EditTextPreference) {
             EditTextPreference editPref = (EditTextPreference) pref;
             pref.setSummary(editPref.getText());
 
+            String text = editPref.getText();
             if (editPref.getKey().equals("dns")
-                    && editPref.getText().isEmpty()) {
+                    && android.text.TextUtils.isEmpty(text)) {
                 pref.setSummary(getString(R.string.summary_dns_preference));
             }
             if (editPref.getKey().equals("disk_size")
-                    && editPref.getText().equals("0")) {
+                    && "0".equals(text)) {
                 pref.setSummary(getString(R.string.summary_disk_size_preference));
             }
             if (editPref.getKey().equals("user_password") &&
-                    editPref.getText().isEmpty()) {
+                    android.text.TextUtils.isEmpty(text)) {
                 editPref.setText(PrefStore.generatePassword());
                 pref.setSummary(editPref.getText());
             }
             if (editPref.getKey().equals("user_name")) {
-                String userName = editPref.getText();
+                String userName = text != null ? text : "";
                 String privilegedUsers = getString(R.string.privileged_users).replaceAll("android", userName);
                 EditTextPreference editPrivilegedUsers = findPreference("privileged_users");
-                editPrivilegedUsers.setText(privilegedUsers);
-                editPrivilegedUsers.setSummary(privilegedUsers);
+                if (editPrivilegedUsers != null) {
+                    editPrivilegedUsers.setText(privilegedUsers);
+                    editPrivilegedUsers.setSummary(privilegedUsers);
+                }
             }
         }
 
@@ -294,20 +313,42 @@ public class PropertiesFragment extends PreferenceFragmentCompat implements
 
                 String distributionStr = listPref.getValue();
 
-                // suite
+                // suite: load predefined entries for current distrib
+                String savedSuiteValue = suite.getValue();
                 int suiteValuesId = PrefStore.getResourceId(getContext(),
                         distributionStr + "_suite_values", "array");
                 if (suiteValuesId > 0) {
-                    suite.setEntries(suiteValuesId);
-                    suite.setEntryValues(suiteValuesId);
-                }
-                if (init) {
-                    int suiteId = PrefStore.getResourceId(getContext(), distributionStr
-                            + "_suite", "string");
-                    if (suiteId > 0) {
-                        String suiteStr = getString(suiteId);
-                        if (suiteStr.length() > 0)
-                            suite.setValue(suiteStr);
+                    CharSequence[] predefinedSuiteValues = getContext().getResources().getTextArray(suiteValuesId);
+                    // Check if saved value is custom (not in predefined list)
+                    boolean isCustomValue = savedSuiteValue != null && savedSuiteValue.length() > 0;
+                    if (isCustomValue) {
+                        for (CharSequence v : predefinedSuiteValues) {
+                            if (savedSuiteValue.equals(v.toString())) {
+                                isCustomValue = false;
+                                break;
+                            }
+                        }
+                    }
+                    if (isCustomValue) {
+                        // Append custom value so ListPreference doesn't silently clear it
+                        CharSequence[] newValues = new CharSequence[predefinedSuiteValues.length + 1];
+                        System.arraycopy(predefinedSuiteValues, 0, newValues, 0, predefinedSuiteValues.length);
+                        newValues[predefinedSuiteValues.length] = savedSuiteValue;
+                        suite.setEntries(newValues);
+                        suite.setEntryValues(newValues);
+                    } else {
+                        suite.setEntries(predefinedSuiteValues);
+                        suite.setEntryValues(predefinedSuiteValues);
+                    }
+                    if (init) {
+                        // On distrib change: reset suite to the default for the new distrib
+                        int suiteId = PrefStore.getResourceId(getContext(), distributionStr + "_suite", "string");
+                        if (suiteId > 0) {
+                            String defaultSuite = getString(suiteId);
+                            if (defaultSuite.length() > 0) {
+                                suite.setValue(defaultSuite);
+                            }
+                        }
                     }
                 }
                 CharSequence suiteEntry = suite.getEntry();
@@ -321,7 +362,8 @@ public class PropertiesFragment extends PreferenceFragmentCompat implements
                     architecture.setEntries(architectureValuesId);
                     architecture.setEntryValues(architectureValuesId);
                 }
-                if (init || architecture.getValue().length() == 0) {
+                String archValue = architecture.getValue();
+                if (init || archValue == null || archValue.isEmpty()) {
                     int architectureId = PrefStore.getResourceId(getContext(),
                             PrefStore.getArch() + "_" + distributionStr
                                     + "_arch", "string");
@@ -335,7 +377,7 @@ public class PropertiesFragment extends PreferenceFragmentCompat implements
                 architecture.setEnabled(true);
 
                 // source path
-                if (init || sourcepath.getText().length() == 0) {
+                if (init || android.text.TextUtils.isEmpty(sourcepath.getText())) {
                     int sourcepathId = PrefStore
                             .getResourceId(getContext(), PrefStore.getArch() + "_"
                                     + distributionStr + "_source_path", "string");

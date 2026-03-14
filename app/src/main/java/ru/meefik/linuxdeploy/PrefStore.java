@@ -657,7 +657,7 @@ public class PrefStore {
      */
     public static String getArch(String arch) {
         String march = "unknown";
-        if (arch.length() > 0) {
+        if (arch != null && arch.length() > 0) {
             char a = arch.toLowerCase().charAt(0);
             switch (a) {
                 case 'a':

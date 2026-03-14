@@ -199,7 +199,7 @@ public class EnvUtils {
             pb.directory(new File(PrefStore.getEnvDir(c)));
             // Map<String, String> env = pb.environment();
             // env.put("PATH", PrefStore.getPath(c) + ":" + env.get("PATH"));
-            if (PrefStore.isDebugMode(c)) pb.redirectErrorStream(true);
+            pb.redirectErrorStream(true);
             Process process = pb.start();
 
             try (DataOutputStream os = new DataOutputStream(process.getOutputStream())) {
