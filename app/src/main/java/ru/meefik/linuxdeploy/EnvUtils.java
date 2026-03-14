@@ -294,8 +294,17 @@ public class EnvUtils {
         }
 
         List<String> params = new ArrayList<>();
-        // install busybox applets
-        params.add("busybox --install -s " + PrefStore.getBinDir(c));
+        // /data/data/ is typically mounted noexec on Android 10+, preventing ELF binaries
+        // from executing there. Copy busybox to /data/local/tmp/ which allows execution.
+        // Applet symlinks created by --install will then point to this executable copy.
+        final String busyboxSrc = PrefStore.getBinDir(c) + "/busybox";
+        final String busyboxExec = "/data/local/tmp/linuxdeploy-busybox";
+        params.add("cp \"" + busyboxSrc + "\" \"" + busyboxExec + "\" 2>/dev/null"
+                + " || /system/bin/cp \"" + busyboxSrc + "\" \"" + busyboxExec + "\" 2>/dev/null");
+        params.add("chmod 755 \"" + busyboxExec + "\"");
+        // install busybox applets; symlinks will point to busyboxExec (exec-accessible)
+        params.add("\"" + busyboxExec + "\" --install -s \"" + PrefStore.getBinDir(c) + "\""
+                + " 2>/dev/null || busybox --install -s \"" + PrefStore.getBinDir(c) + "\"");
         // replace shell interpreter in some scripts
         String[] scripts = {
                 PrefStore.getBinDir(c) + "/websocket.sh",
@@ -369,6 +378,14 @@ public class EnvUtils {
      */
     public static boolean cli(Context c, String cmd, String args) {
         List<String> params = new ArrayList<>();
+        // Ensure busybox executable copy exists in /data/local/tmp (may be cleared on reboot).
+        // Applet symlinks in bin/ point to this location to bypass noexec on /data/data/.
+        final String busyboxSrc = PrefStore.getBinDir(c) + "/busybox";
+        final String busyboxExec = "/data/local/tmp/linuxdeploy-busybox";
+        params.add("[ -x \"" + busyboxExec + "\" ] ||"
+                + " { cp \"" + busyboxSrc + "\" \"" + busyboxExec + "\" 2>/dev/null"
+                + " || /system/bin/cp \"" + busyboxSrc + "\" \"" + busyboxExec + "\" 2>/dev/null;"
+                + " chmod 755 \"" + busyboxExec + "\"; }");
         String opts = "";
         if (PrefStore.isDebugMode(c)) opts += "-d ";
         if (PrefStore.isTraceMode(c)) opts += "-t ";
