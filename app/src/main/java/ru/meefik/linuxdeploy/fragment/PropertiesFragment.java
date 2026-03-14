@@ -4,7 +4,9 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.os.Bundle;
+import android.text.InputFilter;
 import android.widget.EditText;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.preference.EditTextPreference;
@@ -69,6 +71,9 @@ public class PropertiesFragment extends PreferenceFragmentCompat implements
         }
     }
 
+    private static final int SUITE_MAX_LENGTH = 64;
+    private static final String SUITE_VALID_PATTERN = "^[a-zA-Z0-9._\\-]+$";
+
     private void showSuiteSelectionDialog(ListPreference suite) {
         CharSequence[] entries = suite.getEntries();
         CharSequence[] entryValues = suite.getEntryValues();
@@ -86,9 +91,22 @@ public class PropertiesFragment extends PreferenceFragmentCompat implements
         allEntries[predefinedCount] = getString(R.string.suite_custom_input);
         allEntryValues[predefinedCount] = "__custom__";
 
+        int checkedItem = -1;
+        if (currentValue != null && currentValue.length() > 0) {
+            for (int i = 0; i < predefinedCount; i++) {
+                if (currentValue.equals(allEntryValues[i].toString())) {
+                    checkedItem = i;
+                    break;
+                }
+            }
+            if (checkedItem < 0 && !currentValue.equals("__custom__")) {
+                checkedItem = predefinedCount;
+            }
+        }
+
         new AlertDialog.Builder(requireContext())
                 .setTitle(R.string.dialog_title_suite_preference)
-                .setSingleChoiceItems(allEntries, -1, (dialog, which) -> {
+                .setSingleChoiceItems(allEntries, checkedItem, (dialog, which) -> {
                     dialog.dismiss();
                     if (which < predefinedCount) {
                         suite.setValue(allEntryValues[which].toString());
@@ -104,25 +122,44 @@ public class PropertiesFragment extends PreferenceFragmentCompat implements
     private void showSuiteCustomInputDialog(ListPreference suite, String currentValue) {
         EditText editText = new EditText(requireContext());
         editText.setSingleLine(true);
-        editText.setHint("e.g. bookworm");
-        if (currentValue != null && currentValue.length() > 0) {
+        editText.setHint(R.string.suite_input_hint);
+        editText.setFilters(new InputFilter[]{new InputFilter.LengthFilter(SUITE_MAX_LENGTH)});
+        if (currentValue != null && currentValue.length() > 0 && !currentValue.equals("__custom__")) {
             editText.setText(currentValue);
             editText.setSelection(currentValue.length());
         }
 
-        new AlertDialog.Builder(requireContext())
+        AlertDialog dialog = new AlertDialog.Builder(requireContext())
                 .setTitle(R.string.dialog_title_suite_custom)
                 .setMessage(R.string.dialog_message_suite_custom)
                 .setView(editText)
-                .setPositiveButton(android.R.string.ok, (dialog, which) -> {
-                    String customValue = editText.getText().toString().trim();
-                    if (customValue.length() > 0) {
-                        suite.setValue(customValue);
-                        setSummary(suite, false);
-                    }
-                })
+                .setPositiveButton(android.R.string.ok, null)
                 .setNegativeButton(android.R.string.cancel, null)
-                .show();
+                .create();
+        dialog.setOnShowListener(d -> {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                String customValue = editText.getText().toString().trim();
+                if (customValue.isEmpty()) {
+                    Toast.makeText(requireContext(), R.string.suite_error_empty,
+                            Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (customValue.length() > SUITE_MAX_LENGTH) {
+                    Toast.makeText(requireContext(), getString(R.string.suite_error_too_long, SUITE_MAX_LENGTH),
+                            Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (!customValue.matches(SUITE_VALID_PATTERN)) {
+                    Toast.makeText(requireContext(), R.string.suite_error_invalid_chars,
+                            Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                suite.setValue(customValue);
+                setSummary(suite, false);
+                dialog.dismiss();
+            });
+        });
+        dialog.show();
     }
 
     @Override
@@ -200,7 +237,9 @@ public class PropertiesFragment extends PreferenceFragmentCompat implements
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         Preference pref = findPreference(key);
-        setSummary(pref, true);
+        if (pref != null) {
+            setSummary(pref, true);
+        }
     }
 
     private void initSummaries(PreferenceGroup pg) {
@@ -278,7 +317,7 @@ public class PropertiesFragment extends PreferenceFragmentCompat implements
                 // architecture
                 int architectureValuesId = PrefStore.getResourceId(getContext(),
                         distributionStr + "_arch_values", "array");
-                if (suiteValuesId > 0) {
+                if (architectureValuesId > 0) {
                     architecture.setEntries(architectureValuesId);
                     architecture.setEntryValues(architectureValuesId);
                 }

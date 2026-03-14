@@ -175,8 +175,12 @@
     <string name="title_suite_preference">Distribution suite</string>
     <string name="dialog_title_suite_preference">Distribution suite</string>
     <string name="suite_custom_input">Custom / Manual input</string>
+    <string name="suite_input_hint">e.g. bookworm</string>
     <string name="dialog_title_suite_custom">Enter suite version</string>
     <string name="dialog_message_suite_custom">Enter the distribution suite version manually:</string>
+    <string name="suite_error_empty">Suite version cannot be empty</string>
+    <string name="suite_error_too_long">Suite version cannot exceed %d characters</string>
+    <string name="suite_error_invalid_chars">Only letters, numbers, dots, hyphens and underscores are allowed</string>
     <!-- SOURCE_PATH -->
     <string name="title_source_path_preference">Source path</string>
     <string name="dialog_title_source_path_preference">Source path</string>

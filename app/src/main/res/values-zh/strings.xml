@@ -151,8 +151,12 @@
     <string name="title_suite_preference">发行版 GNU/Linux 版本</string>
     <string name="dialog_title_suite_preference">选择发行版 GNU/Linux 版本</string>
     <string name="suite_custom_input">自定义 / 手动输入</string>
+    <string name="suite_input_hint">例如 bookworm</string>
     <string name="dialog_title_suite_custom">输入发行版本</string>
     <string name="dialog_message_suite_custom">请手动输入发行版版本号：</string>
+    <string name="suite_error_empty">发行版本不能为空</string>
+    <string name="suite_error_too_long">发行版本不能超过 %d 个字符</string>
+    <string name="suite_error_invalid_chars">仅允许字母、数字、点、连字符和下划线</string>
     <!-- SOURCE_PATH -->
     <string name="title_source_path_preference">源地址</string>
     <string name="dialog_title_source_path_preference">输入源地址</string>
